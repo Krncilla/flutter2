@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class Calculadora extends StatefulWidget {
   final String usuario;
@@ -14,15 +13,13 @@ class Calculadora extends StatefulWidget {
 
 class _CalculadoraState extends State<Calculadora> {
   final TextEditingController _recargaController = TextEditingController();
-  final TextEditingController _minuto1Controller =
-      TextEditingController(text: "00");
-  final TextEditingController _minuto2Controller =
-      TextEditingController(text: "00");
-  final TextEditingController _minuto11Controller =
-      TextEditingController(text: "00");
+  final TextEditingController _minuto1Controller = TextEditingController();
+  final TextEditingController _minuto2Controller = TextEditingController();
+  final TextEditingController _minuto11Controller = TextEditingController();
 
   double _saldo = 0.0;
   int _minutos = 0;
+  bool _saldoInsuficiente = false;
 
   @override
   void initState() {
@@ -32,32 +29,41 @@ class _CalculadoraState extends State<Calculadora> {
 
   void _recargar() {
     final double recarga = double.tryParse(_recargaController.text) ?? 0.0;
-    final double minuto1 = double.tryParse(_minuto1Controller.text) ?? 90.0;
-    final double minuto2 = double.tryParse(_minuto2Controller.text) ?? 80.0;
-    final double minuto11 = double.tryParse(_minuto11Controller.text) ?? 50.0;
+    final double? minuto1 = double.tryParse(_minuto1Controller.text);
 
     _saldo += recarga;
     _minutos = 0;
+    _saldoInsuficiente = false;
 
-    if (_saldo < minuto1) {
+    if (minuto1 != null && _saldo < minuto1) {
+      // Si el saldo después de la recarga es menor que el costo del minuto 1
       setState(() {
-        _minutos = 0;
+        _saldoInsuficiente = true;
       });
     } else {
-      _saldo -= minuto1;
-      _minutos = 1;
+      final double? minuto2 = double.tryParse(_minuto2Controller.text);
+      final double? minuto11 = double.tryParse(_minuto11Controller.text);
 
-      for (int i = 2; i <= 10 && _saldo >= minuto2; i++) {
-        _saldo -= minuto2;
-        _minutos++;
+      if (minuto1 == null || minuto2 == null || minuto11 == null) {
+        // Si alguno de los minutos no está definido, solo recargamos el saldo.
+        setState(() {});
+      } else {
+        // Si todos los costos de minutos están definidos, realizamos la operación.
+        _saldo -= minuto1!;
+        _minutos = 1;
+
+        for (int i = 2; i <= 10 && _saldo >= minuto2!; i++) {
+          _saldo -= minuto2;
+          _minutos++;
+        }
+
+        while (_saldo >= minuto11!) {
+          _saldo -= minuto11;
+          _minutos++;
+        }
+
+        setState(() {});
       }
-
-      while (_saldo >= minuto11) {
-        _saldo -= minuto11;
-        _minutos++;
-      }
-
-      setState(() {});
     }
   }
 
@@ -93,31 +99,29 @@ class _CalculadoraState extends State<Calculadora> {
             "Saldo Actual: \$$_saldo",
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
-          SizedBox(
-              height: 20), 
+          const SizedBox(height: 20),
           saldo(),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           minuto1(),
-          SizedBox(height: 20), 
+          const SizedBox(height: 20),
           minuto2(),
-          SizedBox(height: 20), 
+          const SizedBox(height: 20),
           minuto11(),
-          SizedBox(height: 20), 
+          const SizedBox(height: 20),
           botonRecargar(),
           if (_minutos > 0)
             Padding(
               padding: const EdgeInsets.only(top: 20),
               child: Text(
                 "Minutos: $_minutos\nSaldo Restante: \$$_saldo",
-                style: const TextStyle(
-                    fontSize: 20, color: Color.fromARGB(255, 180, 110, 238)),
+                style: const TextStyle(fontSize: 20, color: Colors.green),
                 textAlign: TextAlign.center,
               ),
             ),
-          if (_saldo < double.parse(_minuto1Controller.text) && _minutos == 0)
-            Padding(
-              padding: const EdgeInsets.only(top: 20),
-              child: const Text(
+          if (_saldoInsuficiente)
+            const Padding(
+              padding: EdgeInsets.only(top: 20),
+              child: Text(
                 "Saldo insuficiente",
                 style: TextStyle(fontSize: 20, color: Colors.red),
                 textAlign: TextAlign.center,
@@ -175,7 +179,10 @@ class _CalculadoraState extends State<Calculadora> {
   Widget botonRecargar() {
     return ElevatedButton(
       onPressed: _recargar,
-      child: const Text("Recargar"),
+      child: const Text(
+        'Recargar',
+        style: TextStyle(color: Color.fromARGB(255, 243, 244, 244)),
+      ),
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color.fromARGB(255, 212, 11, 125),
       ),
